@@ -60,7 +60,7 @@ void print_progress(double progress, void* data) {
 
 void usage()
 {
-	printf("Usage: tetheredboot -i <ibss> -k <kernelcache> [-r <ramdisk>] [-b <bgcolor>] [-l <bootlogo.img3>]\n");
+	printf("Usage: tetheredboot -i <ibss> [-b <ibec>] -k <kernelcache> [-r <ramdisk>] [-c <bgcolor>] [-l <bootlogo.img3>]\n");
 	exit(0);
 }
 
@@ -73,6 +73,7 @@ int main(int argc, char* argv[]) {
 	//int index;
 	const char 
 		*ibssFile = NULL,
+		*ibecFile = NULL,
 		*kernelcacheFile = NULL,
 		*ramdiskFile = NULL,
 		*bgcolor = NULL,
@@ -81,7 +82,7 @@ int main(int argc, char* argv[]) {
 
 	opterr = 0;
 
-	while ((c = getopt (argc, argv, "vhi:k:r:l:b:")) != -1)
+	while ((c = getopt (argc, argv, "vhi:b:k:r:l:c:")) != -1)
 		switch (c)
 	{
 		case 'v':
@@ -96,6 +97,13 @@ int main(int argc, char* argv[]) {
 				return -1;
 			}
 			ibssFile = optarg;
+			break;
+		case 'b':
+			if (!file_exists(optarg)) {
+				error("Cannot open iBEC file '%s'\n", optarg);
+				return -1;
+			}
+			ibecFile = optarg;
 			break;
 		case 'k':
 			if (!file_exists(optarg)) {
@@ -118,7 +126,7 @@ int main(int argc, char* argv[]) {
 			}
 			bootlogo = optarg;
 			break;
-		case 'b':
+		case 'c':
 			bgcolor = optarg;
 			break;
 		default:
@@ -154,14 +162,39 @@ int main(int argc, char* argv[]) {
 			debug("%s\n", irecv_strerror(ir_error));
 			return -1;
 		}
+		
+		sleep(10);
+
 	} else {
 		return 0;
+	}
+
+	if (ibecFile != NULL) {
+		client = irecv_reconnect(client, 10);
+
+		debug("Uploading iBEC %s to device\n", ibecFile);
+		ir_error = irecv_send_file(client, ibecFile, 1);
+		if(ir_error != IRECV_E_SUCCESS) {
+			error("Unable to upload iBEC\n");
+			debug("%s\n", irecv_strerror(ir_error));
+			return -1;
+		}
+
+		sleep(5);
+
+		ir_error = irecv_send_command(client, "go");
+		if(ir_error != IRECV_E_SUCCESS) {
+			error("Unable send the go command\n");
+			return -1;
+		}
+
+		sleep(5);
 	}
 
 	client = irecv_reconnect(client, 10);
 
 	if (ramdiskFile != NULL) {
-		debug("Uploading %s to device\n", ramdiskFile);
+		debug("Uploading ramdisk %s to device\n", ramdiskFile);
 		ir_error = irecv_send_file(client, ramdiskFile, 1);
 		if(ir_error != IRECV_E_SUCCESS) {
 			error("Unable to upload ramdisk\n");
@@ -173,13 +206,13 @@ int main(int argc, char* argv[]) {
 
 		ir_error = irecv_send_command(client, "ramdisk");
 		if(ir_error != IRECV_E_SUCCESS) {
-			error("Unable send the bootx command\n");
+			error("Unable send the ramdisk command\n");
 			return -1;
 		}	
 	}
 
 	if (bootlogo != NULL) {
-	        debug("Uploading %s to device\n", bootlogo);
+	        debug("Uploading boot logo %s to device\n", bootlogo);
 		ir_error = irecv_send_file(client, bootlogo, 1);
 		if(ir_error != IRECV_E_SUCCESS) {
 			error("Unable to upload bootlogo\n");

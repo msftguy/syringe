@@ -31,6 +31,9 @@ ipch/*
 /loadibec
 .DS_Store
 
+# Binaries (Win32 mingw)
+utilities/*.exe
+
 # Misc
 
 tetheredboot-Debug/*
