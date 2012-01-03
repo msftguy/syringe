@@ -156,7 +156,7 @@ int main(int argc, char* argv[]) {
 
 	if (ibssFile != NULL) {
 		debug("Uploading %s to device\n", ibssFile);
-		ir_error = irecv_send_file(client, ibssFile, 1);
+		ir_error = irecv_send_file(g_syringe_client, ibssFile, 1);
 		if(ir_error != IRECV_E_SUCCESS) {
 			error("Unable to upload iBSS\n");
 			debug("%s\n", irecv_strerror(ir_error));
@@ -170,10 +170,10 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (ibecFile != NULL) {
-		client = irecv_reconnect(client, 10);
+		g_syringe_client = irecv_reconnect(g_syringe_client, 10);
 
 		debug("Uploading iBEC %s to device\n", ibecFile);
-		ir_error = irecv_send_file(client, ibecFile, 1);
+		ir_error = irecv_send_file(g_syringe_client, ibecFile, 1);
 		if(ir_error != IRECV_E_SUCCESS) {
 			error("Unable to upload iBEC\n");
 			debug("%s\n", irecv_strerror(ir_error));
@@ -182,20 +182,13 @@ int main(int argc, char* argv[]) {
 
 		sleep(5);
 
-		ir_error = irecv_send_command(client, "go");
-		if(ir_error != IRECV_E_SUCCESS) {
-			error("Unable send the go command\n");
-			return -1;
-		}
-
-		sleep(5);
 	}
 
-	client = irecv_reconnect(client, 10);
+	g_syringe_client = irecv_reconnect(g_syringe_client, 10);
 
 	if (ramdiskFile != NULL) {
 		debug("Uploading ramdisk %s to device\n", ramdiskFile);
-		ir_error = irecv_send_file(client, ramdiskFile, 1);
+		ir_error = irecv_send_file(g_syringe_client, ramdiskFile, 1);
 		if(ir_error != IRECV_E_SUCCESS) {
 			error("Unable to upload ramdisk\n");
 			debug("%s\n", irecv_strerror(ir_error));
@@ -204,7 +197,7 @@ int main(int argc, char* argv[]) {
 
 		sleep(5);
 
-		ir_error = irecv_send_command(client, "ramdisk");
+		ir_error = irecv_send_command(g_syringe_client, "ramdisk");
 		if(ir_error != IRECV_E_SUCCESS) {
 			error("Unable send the ramdisk command\n");
 			return -1;
@@ -213,20 +206,20 @@ int main(int argc, char* argv[]) {
 
 	if (bootlogo != NULL) {
 	        debug("Uploading boot logo %s to device\n", bootlogo);
-		ir_error = irecv_send_file(client, bootlogo, 1);
+		ir_error = irecv_send_file(g_syringe_client, bootlogo, 1);
 		if(ir_error != IRECV_E_SUCCESS) {
 			error("Unable to upload bootlogo\n");
 			debug("%s\n", irecv_strerror(ir_error));
 			return -1;
 		}
 
-		ir_error = irecv_send_command(client, "setpicture 1");
+		ir_error = irecv_send_command(g_syringe_client, "setpicture 1");
 		if(ir_error != IRECV_E_SUCCESS) {
 			error("Unable to set picture\n");
 			return -1;
 		}
 
-                ir_error = irecv_send_command(client, "bgcolor 0 0 0");
+                ir_error = irecv_send_command(g_syringe_client, "bgcolor 0 0 0");
 		if(ir_error != IRECV_E_SUCCESS) {
 			error("Unable to set picture\n");
                         return -1;
@@ -236,7 +229,7 @@ int main(int argc, char* argv[]) {
 	if (bgcolor != NULL) {
 		char finalbgcolor[255];
 		sprintf(finalbgcolor, "bgcolor %s", bgcolor);
-		ir_error = irecv_send_command(client, finalbgcolor);
+		ir_error = irecv_send_command(g_syringe_client, finalbgcolor);
 		if(ir_error != IRECV_E_SUCCESS) {
 			error("Unable set bgcolor\n");
 			return -1;
@@ -245,14 +238,14 @@ int main(int argc, char* argv[]) {
 	
 	if (kernelcacheFile != NULL) {
 		debug("Uploading %s to device\n", kernelcacheFile);
-		ir_error = irecv_send_file(client, kernelcacheFile, 1);
+		ir_error = irecv_send_file(g_syringe_client, kernelcacheFile, 1);
 		if(ir_error != IRECV_E_SUCCESS) {
 			error("Unable to upload kernelcache\n");
 			debug("%s\n", irecv_strerror(ir_error));
 			return -1;
 		}
 
-		ir_error = irecv_send_command(client, "bootx");
+		ir_error = irecv_send_command(g_syringe_client, "bootx");
 		if(ir_error != IRECV_E_SUCCESS) {
 			error("Unable send the bootx command\n");
 			return -1;

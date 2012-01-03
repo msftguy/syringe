@@ -48,7 +48,7 @@ int irecv_write_file(const char* filename, const void* data, size_t size);
 int irecv_read_file(const char* filename, char** data, uint32_t* size);
 
 #undef debug
-#define debug(...) if(libirecovery_debug) fprintf(stderr, __VA_ARGS__)
+#define debug(...) if(libirecovery_debug) {fprintf(stderr, __VA_ARGS__); fflush(stderr);}
 
 #ifdef _WIN32
 static const GUID GUID_DEVINTERFACE_IBOOT = {0xED82A167L, 0xD61A, 0x4AF6, {0x9A, 0xB6, 0x11, 0xE5, 0x22, 0x36, 0xC5, 0x76}};
@@ -90,7 +90,7 @@ irecv_error_t mobiledevice_connect(irecv_client_t* client) {
 		details = (PSP_DEVICE_INTERFACE_DETAIL_DATA) malloc(requiredSize);
 		details->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
 		if(!SetupDiGetDeviceInterfaceDetail(usbDevices, &currentInterface, details, requiredSize, NULL, NULL)) {
-			irecv_close(_client);
+			irecv_close(&_client);
 			free(details);
 			SetupDiDestroyDeviceInfoList(usbDevices);
 			return IRECV_E_UNABLE_TO_CONNECT;
@@ -114,7 +114,7 @@ irecv_error_t mobiledevice_connect(irecv_client_t* client) {
 	// Get iBoot path
 	usbDevices = SetupDiGetClassDevs(&GUID_DEVINTERFACE_IBOOT, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
 	if(!usbDevices) {
-		irecv_close(_client);
+		irecv_close(&_client);
 		return IRECV_E_UNABLE_TO_CONNECT;
 	}
 	currentInterface.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
@@ -125,7 +125,7 @@ irecv_error_t mobiledevice_connect(irecv_client_t* client) {
 		details = (PSP_DEVICE_INTERFACE_DETAIL_DATA) malloc(requiredSize);
 		details->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
 		if(!SetupDiGetDeviceInterfaceDetail(usbDevices, &currentInterface, details, requiredSize, NULL, NULL)) {
-			irecv_close(_client);
+			irecv_close(&_client);
 			free(details);
 			SetupDiDestroyDeviceInfoList(usbDevices);
 			return IRECV_E_UNABLE_TO_CONNECT;
@@ -156,11 +156,11 @@ irecv_error_t mobiledevice_connect(irecv_client_t* client) {
 
 irecv_error_t mobiledevice_openpipes(irecv_client_t client) {
 	if (client->iBootPath && !(client->hIB = CreateFile(client->iBootPath, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL))) {
-		irecv_close(client);
+		irecv_close(&client);
 		return IRECV_E_UNABLE_TO_CONNECT;
 	}
 	if (client->DfuPath && !(client->hDFU = CreateFile(client->DfuPath, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL))) {
-		irecv_close(client);
+		irecv_close(&client);
 		return IRECV_E_UNABLE_TO_CONNECT;
 	}
 
@@ -342,7 +342,7 @@ int irecv_get_string_descriptor_ascii(irecv_client_t client, uint8_t desc_index,
 #endif
 }
 
-irecv_error_t irecv_open(irecv_client_t* pclient) {
+irecv_error_t irecv_open(irecv_client_t* pClient) {
 #ifndef _WIN32
 	int i = 0;
 	struct libusb_device* usb_device = NULL;
@@ -350,7 +350,7 @@ irecv_error_t irecv_open(irecv_client_t* pclient) {
 	struct libusb_device_handle* usb_handle = NULL;
 	struct libusb_device_descriptor usb_descriptor;
 
-	*pclient = NULL;
+	*pClient = NULL;
 	if(libirecovery_debug) {
 		irecv_set_debug_level(libirecovery_debug);
 	}
@@ -387,7 +387,7 @@ irecv_error_t irecv_open(irecv_client_t* pclient) {
 				}
 
 				memset(client, '\0', sizeof(struct irecv_client));
-				client->interface = 0;
+				client->main_interface = 0;
 				client->handle = usb_handle;
 				client->mode = usb_descriptor.idProduct;
 				if (client->mode != kDfuMode) {
@@ -405,7 +405,7 @@ irecv_error_t irecv_open(irecv_client_t* pclient) {
 				/* cache usb serial */
 				irecv_get_string_descriptor_ascii(client, usb_descriptor.iSerialNumber, (unsigned char*) client->serial, 255);
 				
-				*pclient = client;
+				*pClient = client;
 				return IRECV_E_SUCCESS;
 			}
 		}
@@ -413,9 +413,9 @@ irecv_error_t irecv_open(irecv_client_t* pclient) {
 
 	return IRECV_E_UNABLE_TO_CONNECT;
 #else
-	irecv_error_t ret = mobiledevice_connect(pclient);
+	irecv_error_t ret = mobiledevice_connect(pClient);
 	if (ret == IRECV_E_SUCCESS) {
-		irecv_get_string_descriptor_ascii(*pclient, 3, (unsigned char*) (*pclient)->serial, 255);
+		irecv_get_string_descriptor_ascii(*pClient, 3, (unsigned char*) (*pClient)->serial, 255);
 	}
 	return ret;
 #endif
@@ -441,22 +441,22 @@ irecv_error_t irecv_set_configuration(irecv_client_t client, int configuration) 
 	return IRECV_E_SUCCESS;
 }
 
-irecv_error_t irecv_set_interface(irecv_client_t client, int interface, int alt_interface) {
+irecv_error_t irecv_set_interface(irecv_client_t client, int main_interface, int alt_interface) {
 	if (check_context(client) != IRECV_E_SUCCESS) return IRECV_E_NO_DEVICE;
 	
 #ifndef _WIN32
-	libusb_release_interface(client->handle, client->interface);
+	libusb_release_interface(client->handle, client->main_interface);
 
-	debug("Setting to interface %d:%d\n", interface, alt_interface);
-	if (libusb_claim_interface(client->handle, interface) < 0) {
+	debug("Setting to interface %d:%d\n", main_interface, alt_interface);
+	if (libusb_claim_interface(client->handle, main_interface) < 0) {
 		return IRECV_E_USB_INTERFACE;
 	}
 
-	if (libusb_set_interface_alt_setting(client->handle, interface, alt_interface) < 0) {
+	if (libusb_set_interface_alt_setting(client->handle, main_interface, alt_interface) < 0) {
 		return IRECV_E_USB_INTERFACE;
 	}
 
-	client->interface = interface;
+	client->main_interface = main_interface;
 	client->alt_interface = alt_interface;
 #endif
 
@@ -552,7 +552,8 @@ irecv_error_t irecv_event_unsubscribe(irecv_client_t client, irecv_event_type ty
 	return IRECV_E_SUCCESS;
 }
 
-irecv_error_t irecv_close(irecv_client_t client) {
+irecv_error_t irecv_close(irecv_client_t* pClient) {
+	irecv_client_t client = *pClient;
 	if (client != NULL) {
 		if(client->disconnected_callback != NULL) {
 			irecv_event_t event;
@@ -565,7 +566,7 @@ irecv_error_t irecv_close(irecv_client_t client) {
 #ifndef _WIN32
 		if (client->handle != NULL) {
 			if (client->mode != kDfuMode) {
-				libusb_release_interface(client->handle, client->interface);
+				libusb_release_interface(client->handle, client->main_interface);
 			}
 			libusb_close(client->handle);
 			client->handle = NULL;
@@ -582,7 +583,7 @@ irecv_error_t irecv_close(irecv_client_t client) {
 		mobiledevice_closepipes(client);
 #endif
 		free(client);
-		client = NULL;
+		*pClient = NULL;
 	}
 
 	return IRECV_E_SUCCESS;
@@ -1221,7 +1222,7 @@ irecv_client_t irecv_reconnect(irecv_client_t client, int initial_pause) {
 	irecv_event_cb_t progress_callback = client->progress_callback;
 
 	if (check_context(client) == IRECV_E_SUCCESS) {
-		irecv_close(client);
+		irecv_close(&client);
 	}
 
 	if (initial_pause > 0) {

@@ -27,9 +27,12 @@
 #include "libirecovery.h"
 
 #include "common.h"
-#include "ramdisk.h"
 #include "exploits.h"
+
+#ifndef NO_PAYLOADS
+#include "ramdisk.h"
 #include "payloads.h"
+#endif //NO_PAYLOADS
 
 #define LIMERA1N
 #define STEAKS4UCE
@@ -39,17 +42,23 @@ static pois0n_callback progress_callback = NULL;
 static void* user_object = NULL;
 
 int recovery_callback(irecv_client_t client, const irecv_event_t* event) {
-	progress_callback(event->progress, user_object);
+	if (progress_callback != NULL) {
+		progress_callback(event->progress, user_object);
+	}
 	return 0;
 }
 
 void download_callback(ZipInfo* info, CDFile* file, size_t progress) {
-	progress_callback(progress, user_object);
+	if (progress_callback != NULL) {
+		progress_callback(progress, user_object);
+	}
 }
 
 int send_command(char* command) {
 	unsigned int ret = 0;
 	irecv_error_t error = IRECV_E_SUCCESS;
+	irecv_client_t client = g_syringe_client;
+
 	error = irecv_send_command(client, command);
 	if (error != IRECV_E_SUCCESS) {
 		printf("Unable to send command\n");
@@ -67,6 +76,7 @@ int send_command(char* command) {
 
 int fetch_image(const char* path, const char* output) {
 	debug("Fetching %s...\n", path);
+	irecv_device_t device = g_syringe_device;
 	if (download_file_from_zip(device->url, path, output, &download_callback)
 			!= 0) {
 		error("Unable to fetch %s\n", path);
@@ -79,6 +89,8 @@ int fetch_image(const char* path, const char* output) {
 int fetch_dfu_image(const char* type, const char* output) {
 	char name[64];
 	char path[255];
+
+	irecv_device_t device = g_syringe_device;
 
 	memset(name, '\0', 64);
 	memset(path, '\0', 255);
@@ -98,6 +110,8 @@ int fetch_firmware_image(const char* type, const char* output) {
 	char name[64];
 	char path[255];
 
+	irecv_device_t device = g_syringe_device;
+	
 	memset(name, '\0', 64);
 	memset(path, '\0', 255);
 	snprintf(name, 63, "%s.%s.img3", type, device->model);
@@ -115,6 +129,8 @@ int upload_dfu_image(const char* type) {
 	char image[255];
 	struct stat buf;
 	irecv_error_t error = IRECV_E_SUCCESS;
+	irecv_device_t device = g_syringe_device;
+	irecv_client_t client = g_syringe_client;
 
 	memset(image, '\0', 255);
 	snprintf(image, 254, "%s.%s", type, device->model);
@@ -149,6 +165,8 @@ int upload_firmware_image(const char* type) {
 	char image[255];
 	struct stat buf;
 	irecv_error_t error = IRECV_E_SUCCESS;
+	irecv_device_t device = g_syringe_device;
+	irecv_client_t client = g_syringe_client;
 
 	memset(image, '\0', 255);
 	snprintf(image, 254, "%s.%s", type, device->model);
@@ -179,10 +197,15 @@ int upload_firmware_image(const char* type) {
 	return 0;
 }
 
+#ifndef NO_PAYLOADS
+
 int upload_firmware_payload(const char* type) {
 	int size = 0;
 	const unsigned char* payload = NULL;
 	irecv_error_t error = IRECV_E_SUCCESS;
+
+	irecv_device_t device = g_syringe_device;
+	irecv_client_t client = g_syringe_client;
 
 	switch (device->index) {
 	case DEVICE_APPLETV2:
@@ -349,6 +372,8 @@ int upload_firmware_payload(const char* type) {
 	return 0;
 }
 
+#endif //NO_PAYLOADS
+
 int upload_ibss() {
 	if (upload_dfu_image("iBSS") < 0) {
 		error("Unable upload iBSS\n");
@@ -372,21 +397,24 @@ int upload_devicetree() {
 	}
 	return 0;
 }
-
+#ifndef NO_PAYLOADS
 int upload_ramdisk() {
-	if (irecv_send_buffer(client, (unsigned char*) ramdisk, sizeof(ramdisk), 0)
+	if (irecv_send_buffer(g_syringe_client, (unsigned char*) ramdisk, sizeof(ramdisk), 0)
 			< 0) {
 		error("Unable upload ramdisk\n");
 		return -1;
 	}
 	return 0;
 }
+#endif //NO_PAYLOADS
 
 int upload_kernelcache() {
 	struct stat buf;
 	char kernelcache[255];
 	irecv_error_t error = IRECV_E_SUCCESS;
-
+	irecv_device_t device = g_syringe_device;
+	irecv_client_t client = g_syringe_client;
+	
 	memset(kernelcache, '\0', 255);
 	memset(&buf, '\0', sizeof(buf));
 	snprintf(kernelcache, 254, "kernelcache.release.%c%c%c", device->model[0], device->model[1], device->model[2]);
@@ -416,6 +444,8 @@ int upload_kernelcache() {
 	return 0;
 }
 
+#ifndef NO_PAYLOADS
+
 int upload_ibss_payload() {
 	if (upload_firmware_payload("iBSS") < 0) {
 		error("Unable to upload iBSS payload\n");
@@ -434,6 +464,7 @@ int upload_ibec_payload() {
 
 int boot_ramdisk() {
 	irecv_error_t error = IRECV_E_SUCCESS;
+	irecv_client_t client = g_syringe_client;
 
 	// Add an exception for this since it's very different
 	debug("Preparing to upload ramdisk\n");
@@ -474,6 +505,8 @@ int boot_ramdisk() {
 
 int boot_tethered() {
 	irecv_error_t error = IRECV_E_SUCCESS;
+	irecv_device_t device = g_syringe_device;
+	irecv_client_t client = g_syringe_client;
 
 	debug("Initializing greenpois0n in iBoot\n");
 	irecv_send_command(client, "go");
@@ -545,6 +578,8 @@ int boot_tethered() {
 
 int boot_iboot() {
 	irecv_error_t error = IRECV_E_SUCCESS;
+	irecv_device_t device = g_syringe_device;
+	irecv_client_t client = g_syringe_client;
 
 	debug("Loading iBoot\n");
 	if (device->chip_id == 8720) {
@@ -599,7 +634,7 @@ int boot_iboot() {
 	}
 
 	debug("Reconnecting to device\n");
-	client = irecv_reconnect(client, 10);
+	client = g_syringe_client = irecv_reconnect(client, 10);
 	if (client == NULL) {
 		error("Unable to boot the device tethered\n");
 		return -1;
@@ -623,6 +658,7 @@ int execute_ibss_payload() {
 	//int i = 0;
 	char* bootargs = NULL;
 	irecv_error_t error = IRECV_E_SUCCESS;
+	irecv_client_t client = g_syringe_client;
 
 	debug("Initializing greenpois0n in iBSS\n");
 	irecv_send_command(client, "go");
@@ -669,6 +705,8 @@ int execute_ibss_payload() {
 	return 0;
 }
 
+#endif //NO_PAYLOADS
+
 void pois0n_init() {
 	irecv_init();
 	irecv_set_debug_level(libpois0n_debug);
@@ -691,15 +729,17 @@ void pois0n_set_callback(pois0n_callback callback, void* object) {
 
 int pois0n_is_ready() {
 	irecv_error_t error = IRECV_E_SUCCESS;
-
+	irecv_client_t client = g_syringe_client;
+	
 	//////////////////////////////////////
 	// Begin
 	// debug("Connecting to device\n");
-	error = irecv_open(&client);
+	error = irecv_open(&g_syringe_client);
 	if (error != IRECV_E_SUCCESS) {
 		debug("Device must be in DFU mode to continue\n");
 		return -1;
 	}
+	client = g_syringe_client;
 	irecv_event_subscribe(client, IRECV_PROGRESS, &recovery_callback, NULL);
 
 	//////////////////////////////////////
@@ -707,7 +747,7 @@ int pois0n_is_ready() {
 	// debug("Checking the device mode\n");
 	if (client->mode != kDfuMode) {
 		error("Device must be in DFU mode to continue\n");
-		irecv_close(client);
+		irecv_close(&g_syringe_client);
 		return -1;
 	}
 
@@ -717,9 +757,13 @@ int pois0n_is_ready() {
 int pois0n_is_compatible() {
 	irecv_error_t error = IRECV_E_SUCCESS;
 	info("Checking if device is compatible with this jailbreak\n");
+	irecv_device_t device = g_syringe_device;
+	irecv_client_t client = g_syringe_client;
 
 	debug("Checking the device type\n");
-	error = irecv_get_device(client, &device);
+	error = irecv_get_device(client, &g_syringe_device);
+	device = g_syringe_device;
+	
 	if (device == NULL || device->index == DEVICE_UNKNOWN) {
 		error("Sorry device is not compatible with this jailbreak\n");
 		return -1;
@@ -743,11 +787,13 @@ int pois0n_is_compatible() {
 
 void pois0n_exit() {
 	debug("Exiting libpois0n\n");
-	irecv_close(client);
+	irecv_close(&g_syringe_client);
 	irecv_exit();
 }
 
 int pois0n_injectonly() {
+	irecv_device_t device = g_syringe_device;
+	
 	//////////////////////////////////////
 	// Send exploit
 	if (device->chip_id == 8930) {
@@ -833,13 +879,19 @@ int pois0n_injectonly() {
 	return 0;
 }
 
+#ifndef NO_PAYLOADS
+
 int pois0n_inject() {
 	int result = 0;
+	irecv_client_t client = g_syringe_client;
+
 	result = pois0n_injectonly();
 	if (result < 0) {
 		error("DFU Exploit injection failed (%u)\n", result);
 		return result;
 	}
+	client = g_syringe_client;
+
 	//////////////////////////////////////
 	// Send iBSS
 	debug("Preparing to upload iBSS\n");
@@ -849,8 +901,8 @@ int pois0n_inject() {
 	}
 
 	debug("Reconnecting to device\n");
-	client = irecv_reconnect(client, 10);
-	if (client == NULL) {
+	client = g_syringe_client = irecv_reconnect(client, 10);
+	if (g_syringe_client == NULL) {
 		error("Unable to reconnect\n");
 		return -1;
 	}
@@ -869,3 +921,5 @@ int pois0n_inject() {
 
 	return 0;
 }
+
+#endif //NO_PAYLOADS

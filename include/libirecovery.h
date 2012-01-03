@@ -145,7 +145,7 @@ typedef int(*irecv_event_cb_t)(irecv_client_t client, const irecv_event_t* event
 struct irecv_client {
 	int debug;
 	int config;
-	int interface;
+	int main_interface;
 	int alt_interface;
 	unsigned short mode;
 	char serial[256];
@@ -207,7 +207,7 @@ LIBIRECOVERY_EXPORT const char* irecv_strerror(irecv_error_t error);
 LIBIRECOVERY_EXPORT irecv_error_t irecv_open_attempts(irecv_client_t* pclient, int attempts);
 LIBIRECOVERY_EXPORT irecv_error_t irecv_open(irecv_client_t* client);
 LIBIRECOVERY_EXPORT irecv_error_t irecv_reset(irecv_client_t client);
-LIBIRECOVERY_EXPORT irecv_error_t irecv_close(irecv_client_t client);
+LIBIRECOVERY_EXPORT irecv_error_t irecv_close(irecv_client_t* client);
 LIBIRECOVERY_EXPORT irecv_error_t irecv_receive(irecv_client_t client);
 LIBIRECOVERY_EXPORT irecv_error_t irecv_send_exploit(irecv_client_t client);
 LIBIRECOVERY_EXPORT irecv_error_t irecv_execute_script(irecv_client_t client, const char* filename);
@@ -224,7 +224,7 @@ LIBIRECOVERY_EXPORT irecv_error_t irecv_saveenv(irecv_client_t client);
 LIBIRECOVERY_EXPORT irecv_error_t irecv_getret(irecv_client_t client, unsigned int* value);
 LIBIRECOVERY_EXPORT irecv_error_t irecv_getenv(irecv_client_t client, const char* variable, char** value);
 LIBIRECOVERY_EXPORT irecv_error_t irecv_setenv(irecv_client_t client, const char* variable, const char* value);
-LIBIRECOVERY_EXPORT irecv_error_t irecv_set_interface(irecv_client_t client, int interface, int alt_interface);
+LIBIRECOVERY_EXPORT irecv_error_t irecv_set_interface(irecv_client_t client, int main_interface, int alt_interface);
 LIBIRECOVERY_EXPORT irecv_error_t irecv_get_cpid(irecv_client_t client, unsigned int* cpid);
 LIBIRECOVERY_EXPORT irecv_error_t irecv_get_bdid(irecv_client_t client, unsigned int* bdid);
 LIBIRECOVERY_EXPORT irecv_error_t irecv_get_ecid(irecv_client_t client, unsigned long long* ecid);

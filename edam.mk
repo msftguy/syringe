@@ -281,7 +281,7 @@ endif
 endif
 
 %.o %_d.o %_p.o: %.c
-	$(CC) -c $(CPPFLAGS) $(DEPFLAGS) $(CFLAGS) -o $@ $<
+	$(CC) -c $(CPPFLAGS) $(DEPFLAGS) $(CFLAGS) $(EXTRA_CFLAGS) -o $@ $<
 
 %.o %_d.o %_p.o: %.cc
 	$(CXX) -c $(CPPFLAGS) $(DEPFLAGS) $(CXXFLAGS) -o $@ $<

@@ -59,8 +59,8 @@ extern "C" {
 #define debug(...) if(libpois0n_debug) fprintf(stderr, __VA_ARGS__)
 
 LIBSYRINGE_EXPORT int libpois0n_debug;
-LIBSYRINGE_EXPORT irecv_client_t client;
-LIBSYRINGE_EXPORT irecv_device_t device;
+LIBSYRINGE_EXPORT irecv_client_t g_syringe_client;
+LIBSYRINGE_EXPORT irecv_device_t g_syringe_device;
 
 #ifdef __cplusplus
 }

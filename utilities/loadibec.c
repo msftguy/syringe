@@ -85,24 +85,24 @@ int main(int argc, char* argv[])
 
 	printf("Connecting to iDevice...\n");
 
-	error = irecv_open_attempts(&client, 10);
+	error = irecv_open_attempts(&g_syringe_client, 10);
 	if(error != IRECV_E_SUCCESS)
 	{
 		fprintf(stderr, "Failed to connect to iBoot, error %d.\n", error);
 		return -error;
 	}
 	
-	if(irecv_get_cpid(client, &cpid) == IRECV_E_SUCCESS)
+	if(irecv_get_cpid(g_syringe_client, &cpid) == IRECV_E_SUCCESS)
 	{
 		if(cpid > 8900)
 			can_ra1n = 1;
 	}
 
-	if(client->mode == kDfuMode && can_ra1n)
+	if(g_syringe_client->mode == kDfuMode && can_ra1n)
 	{
 		int ret;
 		printf("linera1n compatible device detected, injecting limera1n.\n");
-		irecv_close(client);
+		irecv_close(&g_syringe_client);
 		irecv_exit();
 
 		pois0n_init();
@@ -117,13 +117,13 @@ int main(int argc, char* argv[])
 
 		pois0n_inject();
 
-		irecv_close(client);
-		client = NULL;
+		irecv_close(&g_syringe_client);
+		g_syringe_client = NULL;
 
 		printf("limera1ned, reconnecting...\n");
 
-		client = irecv_reconnect(client, 10);
-		if(!client)
+		g_syringe_client = irecv_reconnect(g_syringe_client, 10);
+		if(!g_syringe_client)
 		{
 			fprintf(stderr, "Failed to reconnect.\n");
 			return 4;
@@ -134,23 +134,23 @@ int main(int argc, char* argv[])
 
 	printf("Starting transfer of '%s'.\n", argv[1]);
 
-	irecv_event_subscribe(client, IRECV_PROGRESS, &progress_cb, NULL);
+	irecv_event_subscribe(g_syringe_client, IRECV_PROGRESS, &progress_cb, NULL);
 	
-	error = irecv_send_file(client, argv[1], 0);
+	error = irecv_send_file(g_syringe_client, argv[1], 0);
 	if(error != IRECV_E_SUCCESS)
 	{
 		fprintf(stderr, "Failed to upload '%s', error %d.\n", argv[1], error);
 		return 2;
 	}
 
-	error = irecv_send_command(client, "go");
+	error = irecv_send_command(g_syringe_client, "go");
 	if(error != IRECV_E_SUCCESS)
 	{
 		fprintf(stderr, "Failed to jump to uploaded file, error %d.\n", error);
 		return 3;
 	}
 	
-	irecv_send_command(client, "go jump 0x41000000");
+	irecv_send_command(g_syringe_client, "go jump 0x41000000");
 
 	printf("Uploaded Successfully.\n");
 

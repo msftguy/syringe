@@ -26,9 +26,9 @@ ipch/*
 *.payload
 
 # Binaries (OS X, Unix)
-/injectpois0n
-/tetheredboot
-/loadibec
+utilities/injectpois0n
+utilities/tetheredboot
+utilities/loadibec
 .DS_Store
 
 # Binaries (Win32 mingw)
