@@ -82,6 +82,7 @@ extern "C" {
 #define BDID_IPOD3G          2
 #define BDID_IPAD1G          2
 #define BDID_IPHONE4         0
+#define BDID_IPHONE4_REV_A         0
 #define BDID_IPHONE4_CDMA    6
 #define BDID_IPOD4G          8
 #define BDID_APPLETV2       10
@@ -95,6 +96,7 @@ extern "C" {
 #define DEVICE_IPOD3G        5
 #define DEVICE_IPAD1G        6
 #define DEVICE_IPHONE4       7
+#define DEVICE_IPHONE4_REV_A         7
 #define DEVICE_IPHONE4_CDMA  8
 #define DEVICE_IPOD4G        9
 #define DEVICE_APPLETV2      10
@@ -195,12 +197,14 @@ static const struct irecv_device irecv_devices[] = {
 	{  6, "iPad1,1",    "k48ap",  2,  8930,
 	"http://appldnld.apple.com/iPad/061-8801.20100811.CvfR5/iPad1,1_3.2.2_7B500_Restore.ipsw" },
 	{  7, "iPhone3,1",  "n90ap",  0,  8930,
-	"http://appldnld.apple.com/iPhone4/061-7939.20100908.Lcyg3/iPhone3,1_4.1_8B117_Restore.ipsw" },
-	{  8, "iPhone3,3",  "n92ap",  6,  8930,
+	"http://appldnld.apple.com/iPad/061-8801.20100811.CvfR5/iPad1,1_3.2.2_7B500_Restore.ipsw" },
+	{  8, "iPhone3,2",  "n90bap",  0,  8930,
+	"" },
+	{  9, "iPhone3,3",  "n92ap",  6,  8930,
         "" },
-	{  9, "iPod4,1",    "n81ap",  8,  8930,
+	{  10, "iPod4,1",    "n81ap",  8,  8930,
 	"http://appldnld.apple.com/iPhone4/061-8490.20100901.hyjtR/iPod4,1_4.1_8B117_Restore.ipsw" },
-	{  10, "AppleTV2,1", "k66ap", 10,  8930,
+	{  11, "AppleTV2,1", "k66ap", 10,  8930,
 	"http://appldnld.apple.com/AppleTV/061-8940.20100926.Tvtnz/AppleTV2,1_4.1_8M89_Restore.ipsw" },
 	{ -1,  NULL,        NULL,   -1,    -1,
 	NULL }
